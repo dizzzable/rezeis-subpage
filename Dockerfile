@@ -8,7 +8,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # 1) Build the React (Vite) frontend → frontend/dist
-FROM node:24.17-trixie-slim AS frontend-build
+FROM node:24-trixie-slim AS frontend-build
 WORKDIR /opt/app/frontend
 
 COPY frontend/package*.json ./
@@ -19,7 +19,7 @@ COPY frontend/ .
 RUN npm run start:build
 
 # 2) Build the NestJS backend → dist
-FROM node:24.17-trixie-slim AS backend-build
+FROM node:24-trixie-slim AS backend-build
 WORKDIR /opt/app
 
 COPY backend/package*.json ./
@@ -35,7 +35,7 @@ RUN npm cache clean --force
 RUN npm prune --omit=dev
 
 # 3) Runtime image
-FROM node:24.17-trixie-slim
+FROM node:24-trixie-slim
 WORKDIR /opt/app
 
 LABEL org.opencontainers.image.title="Rezeis Subscription Page"
