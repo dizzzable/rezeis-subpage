@@ -1,9 +1,71 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  rezeis-subpage — docker-compose (production)
+#
+#  Its own container + its own subdomain. Joins the shared `remnawave-network`
+#  so it can reach:
+#    • remnawave:3000  — subscription DATA (direct, 100%)
+#    • rezeis:8000     — subpage CONFIG (branding/apps) via the internal API
+#
+#  A reverse proxy (the same Caddy/Traefik/Nginx used for rezeis) routes the
+#  subpage subdomain to `rezeis-subpage:3010`. Example (Caddy):
+#      sub.example.com {
+#          reverse_proxy rezeis-subpage:3010
+#      }
+#
+#  Build + run from source (fork):
+#      docker compose up -d --build
+#
+#  `.env` must define: REMNAWAVE_PANEL_URL, REMNAWAVE_API_TOKEN,
+#  INTERNAL_JWT_SECRET, REZEIS_ADMIN_URL, REZEIS_ADMIN_TOKEN and (to enable the
+#  instant config invalidate) REZEIS_SUBPAGE_WEBHOOK_SECRET. See .env.sample.
+# ══════════════════════════════════════════════════════════════════════════════
+
 services:
-  remnawave-subscription-page:
+  rezeis-subpage:
     build:
       context: .
       dockerfile: Dockerfile
+    image: rezeis-subpage:local
+    container_name: rezeis-subpage
+    hostname: rezeis-subpage
+    restart: unless-stopped
     env_file:
       - .env
-    ports:
-      - '127.0.0.1:3010:3010'
+    environment:
+      APP_PORT: ${APP_PORT:-3010}
+      NODE_ENV: production
+    # Not published to the host — the reverse proxy reaches it over the docker
+    # network at rezeis-subpage:3010. For local host debugging you can add:
+    #   ports: ['127.0.0.1:3010:3010']
+    expose:
+      - '3010'
+    healthcheck:
+      # pm2-runtime is PID 1; a dead app crash-loops and flips this unhealthy.
+      test: ['CMD-SHELL', 'kill -0 1 || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '1.0'
+        reservations:
+          memory: 96M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+      - remnawave-network
+
+networks:
+  # Shared external network with rezeis / reiwa / remnawave. Created by the
+  # first stack that declares it (Remnawave / rezeis). If missing, create once:
+  #   docker network create remnawave-network
+  remnawave-network:
+    name: remnawave-network
+    driver: bridge
+    external: true

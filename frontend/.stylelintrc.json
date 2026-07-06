@@ -10,6 +10,7 @@
     "custom-property-empty-line-before": null,
     "property-no-vendor-prefix": null,
     "color-function-notation": null,
+    "color-function-alias-notation": null,
     "length-zero-no-unit": null,
     "selector-not-notation": null,
     "no-descending-specificity": null,

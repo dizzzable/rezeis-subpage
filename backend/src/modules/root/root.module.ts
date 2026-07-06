@@ -3,13 +3,14 @@ import { JwtModule } from '@nestjs/jwt';
 
 import { getJWTConfig } from '@common/config/jwt/jwt.config';
 
+import { SubpageWebhookController } from './subpage-webhook.controller';
 import { SubpageConfigService } from './subpage-config.service';
 import { RootController } from './root.controller';
 import { RootService } from './root.service';
 
 @Module({
     imports: [JwtModule.registerAsync(getJWTConfig())],
-    controllers: [RootController],
+    controllers: [RootController, SubpageWebhookController],
     providers: [RootService, SubpageConfigService],
 })
 export class RootModule {}

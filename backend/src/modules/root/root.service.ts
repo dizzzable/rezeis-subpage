@@ -95,7 +95,7 @@ export class RootService {
             }
 
             if (userAgent && this.isBrowser(userAgent)) {
-                return this.returnWebpage(clientIp, req, res, shortUuidLocal);
+                return this.returnWebpage(clientIp, res, shortUuidLocal);
             }
 
             const subscriptionDataResponse = await this.axiosService.getSubscription(
@@ -129,11 +129,11 @@ export class RootService {
         }
     }
 
-    private generateJwtForCookie(uuid: string | null): string {
+    private generateJwtForCookie(): string {
         return this.jwtService.sign(
             {
                 sessionId: nanoid(32),
-                su: this.subpageConfigService.getEncryptedSubpageConfigUuid(uuid),
+                su: 'global',
             },
             {
                 expiresIn: '33m',
@@ -172,12 +172,7 @@ export class RootService {
         return genericPaths.some((genericPath) => path.includes(genericPath));
     }
 
-    private async returnWebpage(
-        clientIp: string,
-        req: Request,
-        res: Response,
-        shortUuid: string,
-    ): Promise<void> {
+    private async returnWebpage(clientIp: string, res: Response, shortUuid: string): Promise<void> {
         try {
             const subscriptionDataResponse = await this.axiosService.getSubscriptionInfo(
                 clientIp,
@@ -189,27 +184,8 @@ export class RootService {
                 return;
             }
 
-            const subpageConfigResponse = await this.axiosService.getSubpageConfig(
-                shortUuid,
-                req.headers,
-            );
-
-            if (!subpageConfigResponse.isOk || !subpageConfigResponse.response) {
-                res.socket?.destroy();
-                return;
-            }
-
-            const subpageConfig = subpageConfigResponse.response;
-
-            if (subpageConfig.webpageAllowed === false) {
-                this.logger.log(`Webpage access is not allowed by Remnawave's SRR.`);
-                res.socket?.destroy();
-                return;
-            }
-
-            const baseSettings = this.subpageConfigService.getBaseSettings(
-                subpageConfig.subpageConfigUuid,
-            );
+            // Config (branding / apps / baseSettings) comes from rezeis-admin, not Remnawave.
+            const baseSettings = this.subpageConfigService.getBaseSettings();
 
             const subscriptionData = subscriptionDataResponse.response;
 
@@ -218,7 +194,7 @@ export class RootService {
                 subscriptionData.response.ssConfLinks = {};
             }
 
-            res.cookie('session', this.generateJwtForCookie(subpageConfig.subpageConfigUuid), {
+            res.cookie('session', this.generateJwtForCookie(), {
                 httpOnly: true,
                 secure: true,
                 maxAge: 1_800_000, // 30 minutes

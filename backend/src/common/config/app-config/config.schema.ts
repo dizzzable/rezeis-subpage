@@ -38,8 +38,18 @@ export const configSchema = z
             .string({ message: REQUIRED_REMNAWAVE_API_TOKEN_MESSAGE })
             .min(1, REQUIRED_REMNAWAVE_API_TOKEN_MESSAGE),
 
-        SUBPAGE_CONFIG_UUID: z.string().default('00000000-0000-0000-0000-000000000000'),
         CUSTOM_SUB_PREFIX: z.optional(z.string()),
+
+        // - - - rezeis-admin: source of truth for the subpage config - - -
+        REZEIS_ADMIN_URL: z.string(),
+        REZEIS_ADMIN_TOKEN: z.string().min(1, 'REZEIS_ADMIN_TOKEN is required'),
+        REZEIS_SUBPAGE_WEBHOOK_SECRET: z.optional(z.string()),
+        SUBPAGE_CONFIG_TTL_SECONDS: z
+            .string()
+            .default('300')
+            .transform((value) => (value.trim() === '' ? '300' : value.trim()))
+            .refine((value) => /^\d+$/.test(value), 'SUBPAGE_CONFIG_TTL_SECONDS must be an integer')
+            .transform((value) => parseInt(value, 10)),
 
         TRUST_PROXY: z
             .string()
@@ -78,6 +88,16 @@ export const configSchema = z
                 code: z.ZodIssueCode.custom,
                 message: 'REMNAWAVE_PANEL_URL must start with http:// or https://',
                 path: ['REMNAWAVE_PANEL_URL'],
+            });
+        }
+        if (
+            !data.REZEIS_ADMIN_URL.startsWith('http://') &&
+            !data.REZEIS_ADMIN_URL.startsWith('https://')
+        ) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'REZEIS_ADMIN_URL must start with http:// or https://',
+                path: ['REZEIS_ADMIN_URL'],
             });
         }
         if (data.MARZBAN_LEGACY_LINK_ENABLED) {

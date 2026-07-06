@@ -12,6 +12,7 @@ import morgan from 'morgan';
 import * as ejs from 'ejs';
 
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { RequestMethod } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { APP_CONFIG_ROUTE_WO_LEADING_PATH } from '@remnawave/subscription-page-types';
@@ -107,7 +108,12 @@ async function bootstrap(): Promise<void> {
 
     const customSubPrefix = config.get('CUSTOM_SUB_PREFIX');
 
-    app.setGlobalPrefix(customSubPrefix ?? '', { exclude: [APP_CONFIG_ROUTE_WO_LEADING_PATH] });
+    app.setGlobalPrefix(customSubPrefix ?? '', {
+        exclude: [
+            APP_CONFIG_ROUTE_WO_LEADING_PATH,
+            { path: 'internal/subpage-config/invalidate', method: RequestMethod.POST },
+        ],
+    });
 
     if (customSubPrefix) {
         logger.info('[CONFIG] CUSTOM_SUB_PREFIX: ' + customSubPrefix);
