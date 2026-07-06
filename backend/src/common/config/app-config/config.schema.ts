@@ -40,9 +40,13 @@ export const configSchema = z
 
         CUSTOM_SUB_PREFIX: z.optional(z.string()),
 
-        // - - - rezeis-admin: source of truth for the subpage config - - -
-        REZEIS_ADMIN_URL: z.string(),
-        REZEIS_ADMIN_TOKEN: z.string().min(1, 'REZEIS_ADMIN_TOKEN is required'),
+        // - - - config source - - -
+        // Either mount a config file (SUBPAGE_CONFIG_FILE) OR fetch from
+        // rezeis-admin (REZEIS_ADMIN_URL + REZEIS_ADMIN_TOKEN). File takes
+        // precedence when both are set.
+        SUBPAGE_CONFIG_FILE: z.optional(z.string()),
+        REZEIS_ADMIN_URL: z.optional(z.string()),
+        REZEIS_ADMIN_TOKEN: z.optional(z.string()),
         REZEIS_SUBPAGE_WEBHOOK_SECRET: z.optional(z.string()),
         SUBPAGE_CONFIG_TTL_SECONDS: z
             .string()
@@ -91,6 +95,7 @@ export const configSchema = z
             });
         }
         if (
+            data.REZEIS_ADMIN_URL &&
             !data.REZEIS_ADMIN_URL.startsWith('http://') &&
             !data.REZEIS_ADMIN_URL.startsWith('https://')
         ) {
@@ -99,6 +104,24 @@ export const configSchema = z
                 message: 'REZEIS_ADMIN_URL must start with http:// or https://',
                 path: ['REZEIS_ADMIN_URL'],
             });
+        }
+        // When no config file is mounted, rezeis-admin is the config source and
+        // its URL + token are required.
+        if (!data.SUBPAGE_CONFIG_FILE) {
+            if (!data.REZEIS_ADMIN_URL) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'REZEIS_ADMIN_URL is required unless SUBPAGE_CONFIG_FILE is set',
+                    path: ['REZEIS_ADMIN_URL'],
+                });
+            }
+            if (!data.REZEIS_ADMIN_TOKEN) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'REZEIS_ADMIN_TOKEN is required unless SUBPAGE_CONFIG_FILE is set',
+                    path: ['REZEIS_ADMIN_TOKEN'],
+                });
+            }
         }
         if (data.MARZBAN_LEGACY_LINK_ENABLED) {
             if (!data.MARZBAN_LEGACY_SECRET_KEY) {
